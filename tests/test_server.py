@@ -1,5 +1,5 @@
 import unittest
-import socket
+from unittest.mock import MagicMock
 import ssl
 import sys
 
@@ -8,9 +8,7 @@ from server import handle_client
 
 class TestServer(unittest.TestCase):
     def setUp(self):
-        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client_socket = ssl.wrap_socket(self.client_socket)
-        self.client_socket.connect(('127.0.0.1', 12345))
+        self.client_socket = MagicMock(spec=ssl.SSLSocket)
         self.config = {
             'auth': {
                 'username': 'user',
@@ -18,38 +16,27 @@ class TestServer(unittest.TestCase):
             }
         }
 
-    def tearDown(self):
-        self.client_socket.close()
-
     def test_version_negotiation(self):
         # Test successful version negotiation
-        self.client_socket.send(b"VERSION 1.0")
+        self.client_socket.recv.side_effect = [b"VERSION 1.0", b"AUTH|user|pass"]
         handle_client(self.client_socket, None, self.config)
-        response = self.client_socket.recv(1024).decode('utf-8')
-        self.assertEqual(response, "VERSION OK")
+        self.client_socket.send.assert_any_call(b"VERSION OK")
 
         # Test failed version negotiation
-        self.client_socket.send(b"VERSION 0.9")
+        self.client_socket.recv.side_effect = [b"VERSION 0.9"]
         handle_client(self.client_socket, None, self.config)
-        response = self.client_socket.recv(1024).decode('utf-8')
-        self.assertEqual(response, "VERSION MISMATCH")
+        self.client_socket.send.assert_called_with(b"VERSION MISMATCH")
 
     def test_authentication(self):
         # Test successful authentication
-        self.client_socket.send(b"VERSION 1.0")
-        self.client_socket.recv(1024)  # Expect VERSION OK
-        self.client_socket.send(b"AUTH|user|pass")
+        self.client_socket.recv.side_effect = [b"VERSION 1.0", b"AUTH|user|pass"]
         handle_client(self.client_socket, None, self.config)
-        response = self.client_socket.recv(1024).decode('utf-8')
-        self.assertEqual(response, "AUTH OK")
+        self.client_socket.send.assert_any_call(b"AUTH OK")
 
         # Test failed authentication
-        self.client_socket.send(b"VERSION 1.0")
-        self.client_socket.recv(1024)  # Expect VERSION OK
-        self.client_socket.send(b"AUTH|user|wrongpass")
+        self.client_socket.recv.side_effect = [b"VERSION 1.0", b"AUTH|user|wrongpass"]
         handle_client(self.client_socket, None, self.config)
-        response = self.client_socket.recv(1024).decode('utf-8')
-        self.assertEqual(response, "AUTH FAILED")
+        self.client_socket.send.assert_called_with(b"AUTH FAILED")
 
 if __name__ == '__main__':
     unittest.main()
