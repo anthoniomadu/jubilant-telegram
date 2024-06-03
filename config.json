@@ -1,0 +1,10 @@
+{
+  "host": "127.0.0.1",
+  "port": 12345,
+  "certfile": "server.crt",
+  "keyfile": "server.key",
+  "auth": {
+    "username": "user",
+    "password": "pass"
+  }
+}
