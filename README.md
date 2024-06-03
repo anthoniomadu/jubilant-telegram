@@ -46,12 +46,11 @@ Run the server script using the command python3 server.py --config config.json.
 
 2. Start the client: Run the client script using the command
 
+
 python3 chat_client.py --server-ip 127.0.0.1 --port 12345
 
 
 The client will connect to the server using the provided server IP address, port number, username, and password.
-## Enter User name: user
-## Enter Password: pass
 
 ## Tests
 

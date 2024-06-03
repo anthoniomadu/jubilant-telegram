@@ -22,19 +22,20 @@ def handle_client(client_socket, client_address, config):
         client_socket.send(b"VERSION OK")
         
         # Perform authentication
-        client_socket.send(b"Enter username:")
-        username = client_socket.recv(1024).decode('utf-8').strip()
+        auth_message = client_socket.recv(1024).decode('utf-8').strip()
+        if not auth_message.startswith("AUTH|"):
+            logging.warning("Invalid authentication message format.")
+            client_socket.send(b"AUTH FAILED")
+            return
         
-        client_socket.send(b"Enter password:")
-        password = client_socket.recv(1024).decode('utf-8').strip()
-        
+        _, username, password = auth_message.split("|")
         if username != config['auth']['username'] or password != config['auth']['password']:
             logging.warning("Authentication failed.")
             client_socket.send(b"AUTH FAILED")
             return
         
-        # Send the welcome message after successful authentication
-        client_socket.send(b"Welcome to the server!")
+        client_socket.send(b"AUTH OK")
+        logging.info("Authentication successful.")
         
         while True:
             message = client_socket.recv(1024)
@@ -50,8 +51,6 @@ def handle_client(client_socket, client_address, config):
     finally:
         client_socket.close()
         logging.info(f"Connection from {client_address} closed.")
-
-
 
 def main():
     with open('config.json') as f:
